@@ -1,111 +1,155 @@
-<script>
-    // আগের রেন্ডার ফাংশন ঠিক থাকবে
-    function renderListings(listingsArray) {
-        const container = document.getElementById('listingsContainer');
-        const summary = document.getElementById('resultsSummary');
-        const count = document.getElementById('resultCount');
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BashaKhuji - Find Your Home</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f9f9f9; }
+        .search-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .search-section input, .search-section select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; color: white; }
+        #searchBtn { background-color: #007bff; }
+        #clearBtn { background-color: #dc3545; }
+        .listing-card { background: white; border: 1px solid #e0e0e0; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .listing-card-header h3 { margin-top: 0; color: #333; }
+        .listing-badge { background: #e9ecef; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 5px; }
+        .listing-budget { font-size: 18px; font-weight: bold; color: #28a745; margin-top: 10px; }
+    </style>
+</head>
+<body>
 
-        container.innerHTML = '';
+    <h2><i class="fa fa-home"></i> BashaKhuji</h2>
 
-        if (listingsArray.length === 0) {
-            container.innerHTML = `
-                <div class="no-results">
-                    <i class="fa fa-home"></i>
-                    <h3>No listings found</h3>
-                    <p>Try adjusting your filters</p>
-                </div>
-            `;
-            summary.style.display = 'none';
-        } else {
-            summary.style.display = 'block';
-            count.textContent = listingsArray.length;
+    <div class="search-section">
+        <select id="typeSelect">
+            <option value="">সব ধরণ</option>
+            <option value="Family">Family</option>
+            <option value="Bachelor">Bachelor</option>
+        </select>
+        <input type="number" id="roomsInput" placeholder="রুম সংখ্যা">
+        <input type="text" id="areaInput" placeholder="এলাকা (যেমন: Dhaka)">
+        <input type="number" id="budgetMin" placeholder="সর্বনিম্ন ভাড়া">
+        <input type="number" id="budgetMax" placeholder="সর্বোচ্চ ভাড়া">
+        
+        <button id="searchBtn"><i class="fa fa-search"></i> Search Listings</button>
+        <button id="clearBtn">Clear</button>
+    </div>
 
-            listingsArray.forEach(listing => {
-                const card = document.createElement('div');
-                card.className = 'listing-card';
-                card.innerHTML = `
-                    <div class="listing-card-header">
-                        <h3>${listing.title}</h3>
-                        <div class="listing-info">
-                            <span class="listing-badge type-${(listing.type || '').toLowerCase()}">${listing.type}</span>
-                            <span class="listing-badge"><i class="fa fa-bed"></i> ${listing.rooms} room(s)</span>
-                        </div>
-                    </div>
-                    <div class="listing-card-body">
-                        <div class="listing-description">${listing.description}</div>
-                        <div>
-                            <span class="listing-area"><i class="fa fa-map-marker"></i> ${listing.area} (${listing.areaBengali})</span>
-                        </div>
-                        <div class="listing-budget">৳${listing.budget.toLocaleString()} <small>per month</small></div>
+    <div id="resultsSummary" style="display:none; margin-bottom: 15px; font-weight: bold;">
+        <span id="resultCount">0</span> টি বাসা পাওয়া গেছে!
+    </div>
+
+    <div id="listingsContainer"></div>
+
+    <script>
+        function renderListings(listingsArray) {
+            const container = document.getElementById('listingsContainer');
+            const summary = document.getElementById('resultsSummary');
+            const count = document.getElementById('resultCount');
+
+            container.innerHTML = '';
+
+            if (listingsArray.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding: 40px; color: #777;">
+                        <i class="fa fa-home fa-3x"></i>
+                        <h3>কোনো বাসা পাওয়া যায়নি</h3>
+                        <p>আপনার ফিল্টার পরিবর্তন করে আবার চেষ্টা করুন</p>
                     </div>
                 `;
-                container.appendChild(card);
-            });
+                summary.style.display = 'none';
+            } else {
+                summary.style.display = 'block';
+                count.textContent = listingsArray.length;
+
+                listingsArray.forEach(listing => {
+                    const card = document.createElement('div');
+                    card.className = 'listing-card';
+                    card.innerHTML = `
+                        <div class="listing-card-header">
+                            <h3>${listing.title}</h3>
+                            <div style="margin-bottom: 10px;">
+                                <span class="listing-badge">${listing.type}</span>
+                                <span class="listing-badge"><i class="fa fa-bed"></i> ${listing.rooms} রুম</span>
+                            </div>
+                        </div>
+                        <div class="listing-card-body">
+                            <div style="margin-bottom: 5px; color: #555;">${listing.description}</div>
+                            <div>
+                                <span><i class="fa fa-map-marker-alt"></i> ${listing.area} (${listing.areaBengali})</span>
+                            </div>
+                            <div class="listing-budget">৳${listing.budget.toLocaleString()} <small style="color: #666; font-size: 14px; font-weight: normal;">/ মাস</small></div>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
         }
-    }
 
-    // ব্যাকএন্ড API থেকে ডেটা আনার ফাংশন
-    async function performSearch() {
-        try {
-            const btn = document.getElementById('searchBtn');
-            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Searching...';
-            btn.disabled = true;
+        async function performSearch() {
+            try {
+                const btn = document.getElementById('searchBtn');
+                btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Searching...';
+                btn.disabled = true;
 
-            const type = document.getElementById('typeSelect').value;
-            const rooms = document.getElementById('roomsInput').value;
-            const area = document.getElementById('areaInput').value;
-            const budgetMin = document.getElementById('budgetMin').value;
-            const budgetMax = document.getElementById('budgetMax').value;
+                const type = document.getElementById('typeSelect').value;
+                const rooms = document.getElementById('roomsInput').value;
+                const area = document.getElementById('areaInput').value;
+                const budgetMin = document.getElementById('budgetMin').value;
+                const budgetMax = document.getElementById('budgetMax').value;
 
-            // API URL তৈরি করা (Vercel-এ একই ডোমেইন থাকায় /api/search কাজ করবে)
-            const apiUrl = new URL(window.location.origin + '/api/search');
-            
-            if (type) apiUrl.searchParams.append('type', type);
-            if (rooms) apiUrl.searchParams.append('rooms', rooms);
-            if (area) apiUrl.searchParams.append('area', area);
-            if (budgetMin) apiUrl.searchParams.append('minBudget', budgetMin);
-            if (budgetMax) apiUrl.searchParams.append('maxBudget', budgetMax);
+                const apiUrl = new URL(window.location.origin + '/api/search');
+                
+                if (type) apiUrl.searchParams.append('type', type);
+                if (rooms) apiUrl.searchParams.append('rooms', rooms);
+                if (area) apiUrl.searchParams.append('area', area);
+                if (budgetMin) apiUrl.searchParams.append('minBudget', budgetMin);
+                if (budgetMax) apiUrl.searchParams.append('maxBudget', budgetMax);
 
-            const response = await fetch(apiUrl);
-            
-            if (!response.ok) throw new Error("Network response was not ok");
-            
-            const realData = await response.json();
-            renderListings(realData);
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) throw new Error("Network response was not ok");
+                
+                const realData = await response.json();
+                renderListings(realData);
 
-        } catch (err) {
-            console.error('Search error:', err);
-            alert('সার্ভার থেকে ডেটা আনতে সমস্যা হচ্ছে। দয়া করে আবার চেষ্টা করুন।');
-        } finally {
-            const btn = document.getElementById('searchBtn');
-            btn.innerHTML = '<i class="fa fa-search"></i> Search Listings';
-            btn.disabled = false;
+            } catch (err) {
+                console.error('Search error:', err);
+                alert('সার্ভার থেকে ডেটা আনতে সমস্যা হচ্ছে। দয়া করে আবার চেষ্টা করুন।');
+            } finally {
+                const btn = document.getElementById('searchBtn');
+                btn.innerHTML = '<i class="fa fa-search"></i> Search Listings';
+                btn.disabled = false;
+            }
         }
-    }
 
-    function clearFilters() {
-        document.getElementById('typeSelect').value = '';
-        document.getElementById('roomsInput').value = '';
-        document.getElementById('areaInput').value = '';
-        document.getElementById('budgetMin').value = '';
-        document.getElementById('budgetMax').value = '';
-        performSearch(); // ক্লিয়ার করার পর আবার ডিফল্ট ডেটা আনবে
-    }
+        function clearFilters() {
+            document.getElementById('typeSelect').value = '';
+            document.getElementById('roomsInput').value = '';
+            document.getElementById('areaInput').value = '';
+            document.getElementById('budgetMin').value = '';
+            document.getElementById('budgetMax').value = '';
+            performSearch(); 
+        }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        performSearch(); // পেজ লোড হলেই ব্যাকএন্ড থেকে ডেটা আনবে
+        document.addEventListener('DOMContentLoaded', function() {
+            performSearch(); // পেজ লোড হলেই ডেটা আনবে
 
-        document.getElementById('searchBtn').addEventListener('click', performSearch);
-        document.getElementById('clearBtn').addEventListener('click', clearFilters);
+            document.getElementById('searchBtn').addEventListener('click', performSearch);
+            document.getElementById('clearBtn').addEventListener('click', clearFilters);
 
-        const inputs = document.querySelectorAll('#roomsInput, #areaInput, #budgetMin, #budgetMax');
-        inputs.forEach(input => {
-            input.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    performSearch();
-                }
+            const inputs = document.querySelectorAll('#roomsInput, #areaInput, #budgetMin, #budgetMax');
+            inputs.forEach(input => {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        performSearch();
+                    }
+                });
             });
         });
-    });
-</script>
+    </script>
+</body>
+</html>
