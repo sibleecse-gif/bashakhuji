@@ -2,12 +2,11 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 import requests
-from bs4 import BeautifulSoup
-import time
+import os
 
 app = FastAPI()
 
-# CORS Error এড়ানোর জন্য
+# CORS পলিসি এলাও করা
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,71 +15,79 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def scrape_real_data(area: str):
-    """
-    এটি একটি ডেমো স্ক্র্যাপিং ফাংশন। 
-    বাস্তবে এখানে Bikroy বা অন্য কোনো সাইটের URL এবং সঠিক HTML ট্যাগ ব্যবহার করতে হবে।
-    """
-    scraped_listings = []
-    
-    # ডেমো হিসেবে আমরা একটি ফেক স্ট্রাকচার বানাচ্ছি। 
-    # রিয়েল স্ক্র্যাপিংয়ের জন্য নিচের কমেন্ট করা লাইনের মতো কোড লিখতে হবে:
-    # url = f"https://example-real-estate-site.com/search?location={area}"
-    # response = requests.get(url)
-    # soup = BeautifulSoup(response.text, 'html.parser')
-    # for item in soup.find_all('div', class_='listing-card'): ...
-    
-    # যেহেতু রিয়েল সাইটগুলো বট ব্লক করে, তাই টেস্টিংয়ের জন্য আমরা কিছু জেনারেটেড ডেটা পাঠাচ্ছি
-    scraped_listings = [
-        {
-            "id": int(time.time()),
-            "title": f"Live Scraped: 2 BHK Flat in {area.capitalize() if area else 'Dhaka'}",
-            "description": "This data was fetched dynamically by the Python backend.",
-            "type": "Family",
-            "rooms": 2,
-            "budget": 25000,
-            "area": area.capitalize() if area else "Dhaka",
-            "areaBengali": "ঢাকা"
-        },
-        {
-            "id": int(time.time()) + 1,
-            "title": f"Live Scraped: Bachelor Room in {area.capitalize() if area else 'Dhaka'}",
-            "description": "Scraped from web sources.",
-            "type": "Bachelor",
-            "rooms": 1,
-            "budget": 8000,
-            "area": area.capitalize() if area else "Dhaka",
-            "areaBengali": "ঢাকা"
-        }
-    ]
-    return scraped_listings
-
 @app.get("/api/search")
 async def search_listings(
     type: Optional[str] = Query(None),
     rooms: Optional[int] = Query(None),
-    area: Optional[str] = Query(None),
+    area: Optional[str] = Query("Dhaka"),
     minBudget: Optional[int] = Query(None),
     maxBudget: Optional[int] = Query(None)
 ):
-    # 1. ইন্টারনেট থেকে ডেটা স্ক্র্যাপ করা (বা ডেটাবেস থেকে আনা)
-    raw_data = scrape_real_data(area)
-    
-    # 2. ইউজার এর দেওয়া ফিল্টার অনুযায়ী ডেটা ফিল্টার করা
-    filtered_data = []
-    for item in raw_data:
-        matched = True
+    # Vercel Environment Variables থেকে গুগলের কী জোড়া নেওয়া
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    cx_id = os.environ.get("GOOGLE_CX_ID")
+
+    # যদি API Key সেট করা না থাকে, তবে একটি ডেমো কার্ড দেখাবে যাতে সাইট ক্র্যাশ না করে
+    if not api_key or not cx_id:
+        return [
+            {
+                "id": "demo",
+                "title": f"To Let: Flat/Mess in {area.capitalize()}",
+                "description": "লাইভ ফেসবুক পোস্ট দেখতে আপনার Vercel ড্যাশবোর্ডে GOOGLE_API_KEY এবং GOOGLE_CX_ID সেট করুন।",
+                "type": type or "Family/Bachelor",
+                "rooms": rooms or 2,
+                "budget": 12000,
+                "area": area.capitalize(),
+                "areaBengali": "ঢাকা",
+                "url": "https://www.facebook.com"
+            }
+        ]
+
+    # গুগলের সাহায্যে ফেসবুকে সার্চ করার জন্য কুয়েরি (Google Dorking)
+    search_query = f'site:facebook.com "to let" {area}'
+    if type:
+        search_query += f' "{type}"'
+    if rooms:
+        search_query += f' "{rooms} room" OR "{rooms} bed"'
+
+    google_url = f"https://www.googleapis.com/customsearch/v1?key={api_key}&cx={cx_id}&q={search_query}"
+
+    try:
+        response = requests.get(google_url, timeout=6)
+        search_results = response.json()
+        items = search_results.get('items', [])
         
-        if type and type.lower() != item.get("type", "").lower():
-            matched = False
-        if rooms and int(rooms) != item.get("rooms"):
-            matched = False
-        if minBudget and item.get("budget", 0) < int(minBudget):
-            matched = False
-        if maxBudget and item.get("budget", 0) > int(maxBudget):
-            matched = False
+        real_listings = []
+        for index, item in enumerate(items):
+            snippet = item.get('snippet', '')
             
-        if matched:
-            filtered_data.append(item)
+            # ফেসবুকের বিবরণ থেকে বাজেট (টাকা) অনুমান করার চেষ্টা
+            budget_guess = 15000  # ব্যাকআপ বাজেট
+            words = snippet.replace(',', '').split()
+            for word in words:
+                if word.isdigit() and 3000 <= int(word) <= 80000:
+                    budget_guess = int(word)
+                    break
             
-    return filtered_data
+            # ফ্রন্টএন্ডের বাজেট ফিল্টার চেক করা
+            if minBudget and budget_guess < int(minBudget):
+                continue
+            if maxBudget and budget_guess > int(maxBudget):
+                continue
+
+            real_listings.append({
+                "id": f"fb_{index}",
+                "title": item.get('title', 'Facebook Post').replace(" | Facebook", ""),
+                "description": snippet,
+                "type": type or "Flat/Room",
+                "rooms": rooms or "N/A",
+                "budget": budget_guess,
+                "area": area.capitalize(),
+                "areaBengali": "ঢাকা",
+                "url": item.get('link', 'https://www.facebook.com') # আসল ফেসবুক পোস্টের লিংক
+            })
+            
+        return real_listings
+
+    except Exception as e:
+        return [{"error": str(e)}]
