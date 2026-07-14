@@ -12,10 +12,38 @@
         button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; color: white; }
         #searchBtn { background-color: #007bff; }
         #clearBtn { background-color: #dc3545; }
-        .listing-card { background: white; border: 1px solid #e0e0e0; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .listing-card-header h3 { margin-top: 0; color: #333; }
-        .listing-badge { background: #e9ecef; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 5px; }
-        .listing-budget { font-size: 18px; font-weight: bold; color: #28a745; margin-top: 10px; }
+        .listing-card { background: white; border: 1px solid #e0e0e0; padding: 20px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .listing-card-header h3 { margin-top: 0; color: #333; font-size: 1.2rem; line-height: 1.4; }
+        .listing-badge { background: #e9ecef; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 5px; font-weight: bold; }
+        .listing-budget { font-size: 1.25rem; font-weight: bold; color: #28a745; }
+        
+        /* ফেসবুক পোস্ট বাটনের চমৎকার স্টাইল */
+        .fb-btn {
+            background-color: #1877f2;
+            color: white;
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.2s ease;
+        }
+        .fb-btn:hover {
+            background-color: #145dbf;
+        }
+        .card-footer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #eee;
+        }
     </style>
 </head>
 <body>
@@ -30,15 +58,15 @@
         </select>
         <input type="number" id="roomsInput" placeholder="রুম সংখ্যা">
         <input type="text" id="areaInput" placeholder="এলাকা (যেমন: Dhaka)">
-        <input type="number" id="budgetMin" placeholder="সর্বনিম্ন ভাড়া">
-        <input type="number" id="budgetMax" placeholder="সর্বোচ্চ ভাড়া">
+        <input type="number" id="budgetMin" placeholder="সর্বনিম্ন ভাড়া">
+        <input type="number" id="budgetMax" placeholder="সর্বোচ্চ ভাড়া">
         
         <button id="searchBtn"><i class="fa fa-search"></i> Search Listings</button>
         <button id="clearBtn">Clear</button>
     </div>
 
     <div id="resultsSummary" style="display:none; margin-bottom: 15px; font-weight: bold;">
-        <span id="resultCount">0</span> টি বাসা পাওয়া গেছে!
+        <span id="resultCount">0</span> টি বাসা পাওয়া গেছে!
     </div>
 
     <div id="listingsContainer"></div>
@@ -55,7 +83,7 @@
                 container.innerHTML = `
                     <div style="text-align:center; padding: 40px; color: #777;">
                         <i class="fa fa-home fa-3x"></i>
-                        <h3>কোনো বাসা পাওয়া যায়নি</h3>
+                        <h3>কোনো বাসা পাওয়া যায়নি</h3>
                         <p>আপনার ফিল্টার পরিবর্তন করে আবার চেষ্টা করুন</p>
                     </div>
                 `;
@@ -70,17 +98,27 @@
                     card.innerHTML = `
                         <div class="listing-card-header">
                             <h3>${listing.title}</h3>
-                            <div style="margin-bottom: 10px;">
+                            <div style="margin-top: 8px; margin-bottom: 12px;">
                                 <span class="listing-badge">${listing.type}</span>
                                 <span class="listing-badge"><i class="fa fa-bed"></i> ${listing.rooms} রুম</span>
                             </div>
                         </div>
                         <div class="listing-card-body">
-                            <div style="margin-bottom: 5px; color: #555;">${listing.description}</div>
-                            <div>
-                                <span><i class="fa fa-map-marker-alt"></i> ${listing.area} (${listing.areaBengali})</span>
+                            <div style="margin-bottom: 12px; color: #555; line-height: 1.5; font-size: 14px;">${listing.description}</div>
+                            <div style="color: #666; font-size: 14px;">
+                                <span><i class="fa fa-map-marker-alt"></i> ${listing.area} (${listing.areaBengali || 'বাংলাদেশ'})</span>
                             </div>
-                            <div class="listing-budget">৳${listing.budget.toLocaleString()} <small style="color: #666; font-size: 14px; font-weight: normal;">/ মাস</small></div>
+                            
+                            <div class="card-footer-row">
+                                <div class="listing-budget">
+                                    ৳${listing.budget.toLocaleString()} <small style="color: #666; font-size: 14px; font-weight: normal;">/ মাস</small>
+                                </div>
+                                ${listing.url ? `
+                                    <a href="${listing.url}" target="_blank" class="fb-btn">
+                                        <i class="fa-brands fa-facebook"></i> View Facebook Post
+                                    </a>
+                                ` : ''}
+                            </div>
                         </div>
                     `;
                     container.appendChild(card);
@@ -117,7 +155,7 @@
 
             } catch (err) {
                 console.error('Search error:', err);
-                alert('সার্ভার থেকে ডেটা আনতে সমস্যা হচ্ছে। দয়া করে আবার চেষ্টা করুন।');
+                alert('সার্ভার থেকে ডেটা আনতে সমস্যা হচ্ছে। দয়া করে আবার চেষ্টা করুন।');
             } finally {
                 const btn = document.getElementById('searchBtn');
                 btn.innerHTML = '<i class="fa fa-search"></i> Search Listings';
@@ -135,7 +173,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            performSearch(); // পেজ লোড হলেই ডেটা আনবে
+            performSearch(); // পেজ লোড হলেই ব্যাকএন্ড থেকে রিয়েল-টাইম ডেটা আনবে
 
             document.getElementById('searchBtn').addEventListener('click', performSearch);
             document.getElementById('clearBtn').addEventListener('click', clearFilters);
